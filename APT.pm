@@ -31,7 +31,9 @@ Patches are always welcomed, of course.
   my $apt = Linux::APT->new;
   my $update = $apt->update;
   my $toupgrade = $apt->toupgrade;
+  my $todistupgrade = $apt->todistupgrade;
   my $upgraded = $apt->install(keys(%{$toupgrade->{packages}}));
+  my $distupgraded = $apt->install(keys(%{$todistupgrade->{packages}}));
 
 =head1 METHODS
 
@@ -184,6 +186,38 @@ sub update
   return $update;
 }
 
+=head2 autoremove
+
+my $autoremove = $apt->autoremove;
+
+Removes packages that were installed as dependencies and aren't needed anymore.
+
+=back
+
+=cut
+
+sub autoremove                                                                                                
+{                                                                                                             
+    my $self = shift;                                                                                         
+    my $autoremove = {};                                                                                      
+    if (open(APT, "$self->{aptget} autoremove |"))                                                            
+    {                                                                                                         
+        while (my $line = <APT>)                                                                              
+        {                                                                                                     
+            chomp($line);                                                                                     
+            print qq($line\n);                                                                                
+        }                                                                                                     
+    }                                                                                                         
+  else                                                                                                        
+  {                                                                                                           
+    die "Couldn't use APT: $!\n";                                                                             
+  }                                                                                                           
+                                                                                                              
+    close(APT);                                                                                               
+                                                                                                              
+    return $autoremove;                                                                                       
+}                   
+
 =head2 toupgrade
 
   my $toupgrade = $apt->toupgrade;
@@ -259,6 +293,85 @@ sub toupgrade
 
   return $updates;
 }
+
+=head2 todistupgrade
+
+  my $todistupgrade = $apt->todistupgrade;
+
+Same thing as toupgrade, only it performs a dist-upgrade instead.
+Returns hashref of packages, errors, and warnings:
+
+=over
+
+=item warning
+
+Warnings, if any.
+
+=item error
+
+Errors, if any.
+
+=item packages
+
+Contains a hashref of updateable packages.
+Keys are package names.
+Each update is a hashref containing these items:
+
+=over
+
+=item current
+
+Currently installed version.
+
+=item new
+
+Version to be installed.
+
+=back
+
+=back
+
+=cut
+
+sub todistupgrade
+{
+  my $self = shift;
+  my $updates = {};
+
+  if (open(APT, "echo n | $self->{aptget} -q -V dist-upgrade 2>&1 |"))
+  {
+    while (my $line = <APT>)
+    {
+      chomp($line);
+      print qq($line\n) if $self->{debug};
+      if ($line =~ m#^\s+(\S+)\s+\((\S+)\s+=>\s+(\S+)\)#)
+      {
+        my $update = {};
+        my $package = $1;
+        $update->{current} = $2;
+        $update->{new} = $3;
+        $updates->{packages}->{$package} = $update;
+      }
+      elsif ($line =~ s#^W: ##) # warning
+      {
+        my $warning = {};
+        $warning->{message} = $line;
+        push(@{$updates->{warning}}, $warning);
+      }
+      elsif ($line =~ s#^E: ##) # error
+      {
+        my $error = {};
+        $error->{message} = $line;
+        push(@{$updates->{error}}, $error);
+      }
+    }
+    close(APT);
+  }
+
+  return $updates;
+}
+
+
 
 =head2 search
 
@@ -588,8 +701,6 @@ sub purge
 =item (update this todo list...)
 
 =item Add functions to modify the C<sources.list>.
-
-=item Add C<dist-upgrade> functionality.
 
 =item Add function to show version(s) of currently installed specified package(s).
 
