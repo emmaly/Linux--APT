@@ -24,7 +24,9 @@ Patches are always welcomed, of course.
     my $apt = Linux::APT->new;
     my $update = $apt->update;
     my $toupgrade = $apt->toupgrade;
+    my $todistupgrade = $apt->todistupgrade;
     my $upgraded = $apt->install(keys(%{$toupgrade->{packages}}));
+    my $distupgraded = $apt->install(keys(%{$todistupgrade->{packages}}));
 
 # METHODS
 
@@ -134,6 +136,36 @@ Returns hashref of packages, errors, and warnings:
 
         Version to be installed.
 
+## todistupgrade
+
+    my $todistupgrade = $apt->todistupgrade;
+
+Same thing as toupgrade, only it performs a dist-upgrade instead.
+Returns hashref of packages, errors, and warnings:
+
+- warning
+
+    Warnings, if any.
+
+- error
+
+    Errors, if any.
+
+- packages
+
+    Contains a hashref of updateable packages.
+    Keys are package names.
+    Each update is a hashref containing these items:
+
+    - current
+
+        Currently installed version.
+
+    - new
+
+        Version to be installed.
+
+
 ## search
 
     my $search = $apt->search('^t\w+d$', 'perl');
@@ -240,11 +272,14 @@ Purge a list of packages.
 Arguments are the exact same as `install`.
 Returns the exact same as `install`.
 
+## autoremove
+    my $autoremove = $apt->autoremove;
+Removes packages that were installed as dependencies and aren't needed anymore.
+
 # TODO
 
 - (update this todo list...)
 - Add functions to modify the `sources.list`.
-- Add `dist-upgrade` functionality.
 - Add function to show version(s) of currently installed specified package(s).
 - Determine other necessary features. (please use the CPAN bug tracker to request features)
 
