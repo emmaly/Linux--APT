@@ -184,6 +184,38 @@ sub update
   return $update;
 }
 
+=head2 autoremove
+
+my $autoremove = $apt->autoremove;
+
+Removes packages that were installed as dependencies and aren't needed anymore.
+
+=back
+
+=cut
+
+sub autoremove                                                                                                
+{                                                                                                             
+    my $self = shift;                                                                                         
+    my $autoremove = {};                                                                                      
+    if (open(APT, "$self->{aptget} autoremove |"))                                                            
+    {                                                                                                         
+        while (my $line = <APT>)                                                                              
+        {                                                                                                     
+            chomp($line);                                                                                     
+            print qq($line\n);                                                                                
+        }                                                                                                     
+    }                                                                                                         
+  else                                                                                                        
+  {                                                                                                           
+    die "Couldn't use APT: $!\n";                                                                             
+  }                                                                                                           
+                                                                                                              
+    close(APT);                                                                                               
+                                                                                                              
+    return $autoremove;                                                                                       
+}                   
+
 =head2 toupgrade
 
   my $toupgrade = $apt->toupgrade;
